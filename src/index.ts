@@ -1,44 +1,53 @@
+import 'reflect-metadata'
 import * as bodyParser from 'body-parser'
 import cors from 'cors'
 import * as Dotenv from 'dotenv'
-import express from 'express'
-import { Express } from 'express-serve-static-core'
-import { Server } from 'http'
-import 'reflect-metadata'
+import express, { Express } from 'express'
+import http from 'http'
 import {Connection} from 'typeorm'
 import Database from './common/utils/Database'
 import Router from './sprintman/Router'
-import AuthService from './sprintman/service/AuthService'
+import IStartSession from './IStartSession'
+import { createMessageAdapter } from '@slack/interactive-messages/dist'
+import { createEventAdapter } from '@slack/events-api/dist'
 
 const initDatabase = async (): Promise<Connection> => {
-  return await new Database(
-    process.env.DB_HOST,
-    parseInt(process.env.DB_PORT, 10),
-    process.env.DB_NAME,
-    process.env.DB_PASSWORD,
-    process.env.DB_USER
-  ).connect()
+  try {
+    return await new Database(
+      process.env.DB_HOST,
+      parseInt(process.env.DB_PORT, 10),
+      process.env.DB_NAME,
+      process.env.DB_PASSWORD,
+      process.env.DB_USER
+    ).connect()
+  } catch (err) {
+    console.error(`Unable to connect database, error is ${err.message}`)
+  }
 }
 
-const initServer = (defaultPort: number): { http: Server, app: Express } => {
+const initServer = (defaultPort: number, connection: Connection): IStartSession => {
   const port: number = parseInt(process.env.PORT, 10) || defaultPort
   const app: Express = express()
-  app.use(AuthService.filterSlackRequest)
+
+  const interactions = createMessageAdapter(process.env.SLACK_SIGNING_SECRET)
+  const events = createEventAdapter(process.env.SLACK_SIGNING_SECRET)
+
   app.use(cors({ origin: '*' }))
-  app.use(bodyParser.json())
-  const http = app.listen(port, () => console.info(`Server started, listening on :${port}`))
-  return { app, http }
+  app.use('/events', events.requestListener())
+  app.use('/interactions', interactions.requestListener())
+  // app.use(bodyParser.json())
+
+  const server = http.createServer(app)
+  server.listen(port, () => console.info(`Server listening on :${port}`))
+  return { app, interactions, events, connection }
 }
 
 const initApp = async (): Promise<void> => {
-  const { app } = initServer(3000)
-  return initDatabase().then(connection => {
-      const router = new Router(app, connection)
-      router.exposeHttpRoutes()
-    })
-    .catch(err => {
-      console.error(`Unable to connect database, error is ${err.message}`)
-    })
+  const connection = await initDatabase()
+  const startSession = initServer(3000, connection)
+  const router = new Router(startSession)
+  router.exposeEvents()
+  router.exposeHttpRoutes()
 }
 
 Dotenv.config()

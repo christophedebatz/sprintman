@@ -12,14 +12,14 @@ export default class SprintController {
   }
 
   public async fetchSprint(req: Request, res: Response): Promise<void> {
-    res.json(SprintManResponse.single(await this.repository.findById(req.params.id)))
+    res.json(SprintManResponse.single(await this.repository.findById(null)))
   }
 
   public async fetchSprints(req: Request, res: Response): Promise<void> {
-    res.json(SprintManResponse.single(await this.repository.findBy(req.query)))
+    res.json(SprintManResponse.single(await this.repository.findBy(null)))
   }
 
   public async createSprint(req: Request, res: Response) {
-    res.json(SprintManResponse.single(await this.repository.save(req.body)))
+    res.json(SprintManResponse.single(await this.repository.save(null)))
   }
 }

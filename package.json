@@ -17,7 +17,8 @@
     "prebuild": "tslint -c tslint.json -p tsconfig.json --fix",
     "clean": "rimraf dist/*",
     "lint": "tslint -c tslint.json -p tsconfig.json --fix",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docker": "yarn build && docker-compose up --build &"
   },
   "dependencies": {
     "@types/axios": "^0.14.0",
@@ -50,7 +51,7 @@
     "rimraf": "^2.6.3",
     "ts-node": "^8.0.2",
     "ts-node-dev": "^1.0.0-pre.32",
-    "tslint": "^5.12.1",
+    "tslint": "^6.0.0",
     "typescript": "^3.3.3"
   }
 }

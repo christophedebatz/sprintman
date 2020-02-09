@@ -18,19 +18,19 @@ export default class Router {
   public exposeHttpRoutes() {
     this.app
 
-      .get('/api/auth', async (req: Request, res: Response) => {
-        console.log('authhh')
+      .get('/version', (req: Request, res: Response) => res.json({ version: 1.0 }))
+
+      .get('/auth', async (req: Request, res: Response) => {
         const authService = new AuthService()
         if (req.query.code && req.query.state) {
           const accessToken = await authService.getAccessToken(req.query.code, req.query.state)
-          console.log('access token=', accessToken)
         } else {
           res.redirect(await authService.generateOAuthUrl())
         }
       })
 
-      .post('/api/events', (req: Request, res: Response) => {
-        if (req.body.challenge) { return res.send(req.body.challenge) }
+      .post('/events', (req: Request, res: Response) => {
+        if (req.body.challenge) res.send(req.body.challenge);
       })
 
       .post('/sprints', async (req: Request, res: Response) =>

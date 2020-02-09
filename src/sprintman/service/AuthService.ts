@@ -14,12 +14,9 @@ export default class AuthService {
     let body = ''
     req.on('data', chunk => body += chunk)
     req.on('end', () => {
-      console.log('body=', body)
-      console.log('tmsp=', timestamp)
-      const isRequestBeforeFiveMinutes = moment.unix(timestamp)
+      const requestHasLessThan5Minutes = moment.unix(timestamp)
         .isSameOrAfter(moment().subtract(5, 'm'))
-      if (isRequestBeforeFiveMinutes) {
-        console.log('isRequestIsMoreThan5Mn=', isRequestBeforeFiveMinutes)
+      if (requestHasLessThan5Minutes) {
         const slackSignature = Buffer.from(req.headers['x-slack-signature'] as string, 'hex')
         const appSignature = Buffer.from('v0=' + crypto.createHmac('sha256', process.env.SLACK_SIGNING_SECRET)
           .update(`v0:${timestamp}:${body}`)

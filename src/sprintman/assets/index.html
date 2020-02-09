@@ -1,0 +1,416 @@
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
+        crossorigin="anonymous">
+  <link rel="stylesheet" href="starter.css">
+  <link rel="shortcut icon" type="image/png" href="logo-bunker.png">
+
+  <script type="text/javascript" src="https://cdn.test2.oystatic.eu/scripts/prestashop.js"></script>
+  <script type="text/javascript" src="starter.js"></script>
+  <script type="text/javascript" src="lib/jsrasign.min.js"></script>
+
+  <script>
+    // never touch the format of this line
+    // because it will be parsed by the project
+    const MERCHANT_ID = 'ffd46982-bf9e-4602-9fcd-20573882e5a4'
+
+    // other parameters
+    const CONNECTOR_API_URL = 'http://connector-api.oyst.io:8888/v1'
+    const MERCHANT_API_URL = 'http://merchant-api.oyst.io:8888'
+    const BUNKER_CDN_URL = 'http://cdn.oyst.io:8888'
+    const MERCHANT_API_SHARED_KEY = 'fake'
+    const BUNKER_API_URL = 'http://store.oyst.io/bunker'
+    const PLUGIN_API_URL = { external: 'http://plugin.oyst.io:8888/plugin', internal: 'http://plugin:3000/plugin' }
+
+    // intialize Oyst variables
+    window.__OYST__ = window.__OYST__ || {}
+    window.__OYST__.pageName = 'cart'
+    window.__OYST__.getApiBaseUrl = function () {
+      return CONNECTOR_API_URL
+    }
+    window.__OYST__.getScriptUrl = function () {
+      return `${BUNKER_CDN_URL}/oneclick.min.js`
+    }
+    window.__OYST__.getCssUrl = function () {
+      return `${BUNKER_CDN_URL}/button.css`
+    }
+    window.__OYST__.getRedirect = function () {
+      const shouldBeRedirecting = localStorage.getItem('bunker:oyst:redirect') === 'on'
+      return {
+        success: shouldBeRedirecting ? `${window.location}/?success` : undefined,
+        failure: shouldBeRedirecting ? `${window.location}/?failure` : undefined
+      }
+    }
+    window.__OYST__.baseUrl = PLUGIN_API_URL.external
+    window.__OYST__.internalBaseUrl = PLUGIN_API_URL.internal
+
+    document.addEventListener('DOMContentLoaded', function () {
+      loadSuperTagScript(MERCHANT_ID, 'loader').then(finalize)
+    })
+  </script>
+</head>
+<body>
+
+<div id="loader">
+  <img src="logo-oyst.gif" border="0" align="Wait..."/>
+</div>
+
+<div id="main" style="display: none !important;">
+
+  <div class="alert alert-warning" role="alert" id="version-warning"
+       style="display: none; margin-bottom: 0px !important; border-radius: 0px !important; text-align: center;">
+    Your bunker <strong>needs to be updated</strong> as soon as possible. Please consider updating it now.
+    <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target=".modal-update">
+      Update now
+    </button>
+  </div>
+
+  <div class="modal fade modal-update" id="modal-update" tabindex="-1" role="dialog" aria-labelledby="modal-update"
+       aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-content">
+        <nav class="navbar navbar-light bg-light">
+          <a class="navbar-brand" href="#">
+            <img src="update.png" width="30" height="30" class="d-inline-block align-top" alt="">
+            Bunker update system
+          </a>
+        </nav>
+        <div style="padding: 20px !important;">
+          <p style="text-align: center;">Please do not close the page.</p>
+          <div class="progress">
+            <div class="progress-bar" id="update-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                 aria-valuemax="100"><span id="update-status">Initializing...</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bunker-navbar" class="navbar navbar-light bg-light" style="display: none; margin-bottom: 30px;">
+    <span class="navbar-brand" id="logo" style="cursor: pointer !important;">
+      <img src="logo-bunker.png" width="30" height="30" class="d-inline-block align-top" alt="">
+       &nbsp;Bunker
+    </span>
+  </nav>
+
+  <div class="jumbotron" style="display: none; border-radius: 0px !important;">
+    <div class="row">
+      <div class="col-sm-8">
+        <h1 class="display-4">Welcome to your local Bunker!</h1>
+        <p class="lead">You are here on the homepage of your local development environment.
+          Use the various menus to set your environment and then launch the Oyst modal by clicking on the button.
+          You're used anyway!</p>
+      </div>
+      <div class="col-sm-4">
+        <img src="logo-bunker.png">
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="result"
+         style="width: 100%; min-height: 40px; vertical-align: center; text-align: center; padding: 10px; margin: 25px;"></div>
+
+    <div class="row">
+      <div class="col-sm-8">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" href="#plugin-settings" data-toggle="tab" id="plugin-settings-tab">Product</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#oyst-settings" data-toggle="tab" id="oyst-settings-tab">Oyst</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#merchant-settings" data-toggle="tab" id="merchant-settings-tab">Merchant</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#bunker-settings" data-toggle="tab" id="bunker-settings-tab">Bunker</a>
+          </li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane fade show active" id="plugin-settings" role="tabpanel"
+               aria-labelledby="plugin-settings-tab"
+               style="padding: 20px;">
+            <div class="text-center" id="preload" style="padding: 30px; margin: auto; width: 100%; min-height: 200px;">
+              <h3>Loading...</h3>
+            </div>
+            <form id="form-plugin" style="display: none;">
+              <div class="form-group">
+                <label for="product-name">Product name</label>
+                <input type="text" class="form-control" id="product-name" value="Wagon grue tout-terrain LEGO® TECHNIC"
+                       placeholder="Wagon grue tout-terrain LEGO® TECHNIC">
+              </div>
+              <div class="form-group">
+                <label for="product-description">Product description</label>
+                <textarea class="form-control" id="product-description" rows="4"
+                          placeholder="Fais de la place pour l’énorme grue tout-terrain LEGO® Technic™ 42082, la plus grande et la plus haute grue LEGO Technic à ce jour !">
+Fais de la place pour l’énorme grue tout-terrain LEGO® Technic™ 42082, la plus grande et la plus haute grue LEGO Technic à ce jour !</textarea>
+              </div>
+              <div class="form-group">
+                <label for="product-price">Product price</label>
+                <div class="input-group mb-3">
+                  <div class="input-group-prepend">
+                    <span class="input-group-text">EUR</span>
+                  </div>
+                  <input type="text" id="product-price" class="form-control" aria-label="Amount"
+                         value="59.99" placeholder="59.99">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="product-picture-url">Product picture URL</label>
+                <input type="text" class="form-control" id="product-picture-url"
+                       value="http://store.oyst.io/product.jpg" placeholder="http://store.oyst.io/product.jpg">
+              </div>
+              <div class="form-group">
+                <label for="product-quantity">Remaining items</label>
+                <input type="number" min="1" max="9999" class="form-control" id="product-quantity"
+                       value="10" placeholder="10">
+              </div>
+              <button type="button" class="btn btn-primary btn-lg btn-block" id="product-submit">Save</button>
+            </form>
+          </div>
+          <div class="tab-pane fade show" id="oyst-settings" role="tabpanel" aria-labelledby="oyst-settings-tab"
+               style="padding: 20px;">
+            <form>
+              <div class="form-group">
+                <label for="oyst-button-configs">Button configs</label>
+                <textarea class="form-control" id="oyst-button-configs" rows="15"></textarea>
+              </div>
+              <div class="form-group">
+                <label for="oyst-merchant">Merchant config</label>
+                <textarea class="form-control" id="oyst-merchant" rows="15"></textarea>
+              </div>
+              <div class="form-check" style="padding-top: 7px !important; padding-bottom: 15px !important;">
+                <input class="form-check-input" type="checkbox" id="oyst-redirect">
+                <label class="form-check-label" for="oyst-redirect">
+                  Redirect after purchase
+                </label>
+              </div>
+              <button type="button" class="btn btn-primary btn-lg btn-block" id="oyst-submit">Save</button>
+            </form>
+          </div>
+          <div class="tab-pane fade" id="merchant-settings" role="tabpanel" aria-labelledby="plugin-settings-tab"
+               style="padding: 20px;">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".modal-carriers">
+              Carriers <span class="badge badge-light" id="carriers-counter">0</span>
+              <span class="sr-only"></span>
+            </button>
+            <div class="modal fade modal-carriers" tabindex="-1" role="dialog" aria-labelledby="modal-carriers"
+                 aria-hidden="true">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <nav class="navbar navbar-light bg-light">
+                    <a class="navbar-brand" href="#">
+                      <img src="carriers.png" width="40" height="30" class="d-inline-block align-top" alt="">
+                      Carriers management
+                    </a>
+                  </nav>
+                  <div style="padding: 20px !important;">
+                    <form class="form-inline">
+                      <div class="col-sm">
+                        <input type="text" class="form-control" id="carrier-label" placeholder="Carrier label">
+                        <input type="text" class="form-control" id="carrier-ref" aria-describedby="carrier-ref"
+                               placeholder="Carrier reference">
+                        <input type="text" id="carrier-country" class="form-control" aria-label="country"
+                               placeholder="Carrier main country">
+                      </div>
+                      <div class="col-sm">
+                        <input type="text" id="carrier-price" class="form-control" aria-label="price"
+                               placeholder="Carrier price (EUR)">
+
+                        <input type="text" class="form-control" id="carrier-delay" aria-describedby="carrier-delay"
+                               placeholder="Carrier delay (hours)">
+                        <input type="text" class="form-control" id="carrier-export-multiplier"
+                               aria-describedby="carrier-export-multiplier" placeholder="Carrier export price multiplier">
+                      </div>
+                      <div class="col-sm-12" style="padding-top: 10px !important;">
+                        <button type="submit" id="carrier-submit" class="btn btn-primary btn-lg btn-block">Add</button>
+                      </div>
+                    </form>
+                    <table class="table table-hover">
+                      <thead>
+                      <tr>
+                        <th scope="col">Ref.</th>
+                        <th scope="col">Label</th>
+                        <th scope="col">Delay</th>
+                        <th scope="col">Price</th>
+                        <th scope="col">Country</th>
+                        <th scope="col">Multiplier</th>
+                        <th scope="col">&nbsp;</th>
+                      </tr>
+                      </thead>
+                      <tbody id="carrier-table-anchor">
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target=".modal-coupons">
+              Coupons <span class="badge badge-light" id="coupons-counter">0</span>
+              <span class="sr-only"></span>
+            </button>
+            <div class="modal fade modal-coupons" tabindex="-1" role="dialog" aria-labelledby="modal-coupons"
+                 aria-hidden="true">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <nav class="navbar navbar-light bg-light">
+                    <a class="navbar-brand" href="#">
+                      <img src="coupons.png" width="30" height="30" class="d-inline-block align-top" alt="">
+                      Coupons management
+                    </a>
+                  </nav>
+                  <div style="padding: 20px !important;">
+                    <form class="form-inline">
+                      <div class="form-group mb-2">
+                        <input type="text" class="form-control" id="coupon-label" placeholder="Coupon label">
+                      </div>
+                      <div class="form-group mx-sm-3 mb-2">
+                        <input type="text" class="form-control" id="coupon-code" aria-describedby="coupon-code"
+                               placeholder="Coupon code">
+                      </div>
+                      <div class="form-group mx-sm-3 mb-2">
+                        <input type="text" id="coupon-value" class="form-control" aria-label="Amount"
+                               placeholder="Coupon value (EUR)">
+                      </div>
+                      <div class="form-group mx-sm-3 mb-2">
+                        <button type="submit" id="coupon-submit" class="btn btn-primary mb-2">Add</button>
+                      </div>
+                    </form>
+                    <table class="table table-hover">
+                      <thead>
+                      <tr>
+                        <th scope="col">Code</th>
+                        <th scope="col">Label</th>
+                        <th scope="col">Value</th>
+                        <th scope="col">&nbsp;</th>
+                      </tr>
+                      </thead>
+                      <tbody id="coupon-table-anchor">
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tab-pane fade show" id="bunker-settings" role="tabpanel" aria-labelledby="bunker-settings-tab"
+               style="padding: 20px;">
+            <div class="form-group">
+              <form class="form-inline">
+                <div class="form-group mx-sm-3 mb-2">
+                  <button type="button" class="btn btn-danger" id="delete-orders">Delete all orders</button>
+                </div>
+                <div class="form-group mx-sm-3 mb-2">
+                  <button type="button" class="btn btn-danger" id="delete-products">Delete all products</button>
+                </div>
+              </form>
+            </div>
+            <div class="form-group">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="bunker-show-boobs">
+                <label class="form-check-label" for="bunker-show-boobs">
+                  Show me boobies
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="bunker-show-jumbotron">
+                <label class="form-check-label" for="bunker-show-jumbotron">
+                  Show large head panel
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-4">
+        <div class="card" style="width: 18rem; border: none !important;">
+          <img id="card-product-picture-url" class="card-img-top" src="product.jpg" alt="Card image cap">
+          <div class="card-body">
+            <h5 class="card-title" id="card-product-name">Wagon grue tout-terrain LEGO® TECHNIC</h5>
+            <h6 class="card-subtitle mb-2 text-muted"><span id="card-product-price">59.99</span> EUR.</h6>
+            <p class="card-text" id="card-product-description">Fais de la place pour l’énorme grue tout-terrain LEGO®
+              Technic™ 42082,
+              la plus grande et la plus haute grue LEGO Technic à ce jour !</p>
+            <div id="add_to_cart"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer" id="footer" style="display: none !important;">
+  <div class="container">
+    <div class="row justify-content-between">
+      <div class="col-lg-8">
+        <p class="text-muted">&copy; 2019 <a href="https://www.oyst.com" target="_blank">Oyst France</a> SAS - Made with
+          <i class="fas fa-heart"></i> by
+          <a href="https://www.linkedin.com/in/christophe-de-batz-63b0032b" type="_blank">Chris</a></p>
+      </div>
+      <!--<div class="col-4">-->
+      <!--<img src="logo-oyst.png" width="120" height="60" class="oyst-logo-footer">-->
+      <!--</div>-->
+    </div>
+
+  </div>
+</footer>
+
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css" crossorigin="anonymous">
+<link rel="stylesheet" href="lib/cm/ambiance.css">
+<link rel="stylesheet" href="lib/cm/codemirror.css">
+
+<script type="text/javascript" src="http://store.oyst.io/socket.io/socket.io.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.slim.min.js" crossorigin="anonymous"></script>
+<script type="text/javascript" src="lib/bootstrap.min.js"></script>
+<script type="text/javascript" src="lib/bootstrap.bundle.min.js"></script>
+<script type="text/javascript" src="store.js"></script>
+<script type="text/javascript" src="lib/cm/codemirror.js"></script>
+<script type="text/javascript" src="lib/cm/javascript.js"></script>
+<script type="text/javascript" src="lib/cm/autorefresh.js"></script>
+
+<script type="text/javascript">
+  // add code mirror json editors
+  const editorsConfig = {
+    lineNumbers: true,
+    autoRefresh: true,
+    matchBrackets: true,
+    autoCloseBrackets: true,
+    mode: 'application/json'
+  }
+  const editors = {}
+  editors['oyst-button-configs'] = CodeMirror.fromTextArea(
+    document.getElementById('oyst-button-configs'),
+    editorsConfig
+  )
+
+  editors['oyst-merchant'] = CodeMirror.fromTextArea(
+    document.getElementById('oyst-merchant'),
+    editorsConfig
+  )
+
+  // displaying when payment was success or failure
+  const isSuccess = getParameterByName('success')
+  const isFailure = getParameterByName('failure')
+  const resultNode = document.getElementById('result')
+  if (!resultNode) {
+    console.info('The `result` node id is not present in the DOM, just add <div id="result"></div>')
+  } else if (null === isSuccess && null === isFailure) {
+    resultNode.style.display = 'none'
+  } else {
+    resultNode.style.display = 'block'
+    if (isSuccess === true) {
+      resultNode.style.backgroundColor = '#E0EBD2'
+      resultNode.style.color = '#4eae59'
+      resultNode.innerHTML = '<strong>Order has been successfully sent, thanks for your confidence!</strong>'
+    } else {
+      resultNode.style.backgroundColor = '#ff5050'
+      resultNode.style.color = '#ffe2e2'
+      resultNode.innerHTML = '<strong>We are just encountering some errors when processing your payment. See logs please.</strong>'
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+  redis:
+    image: 'redis:latest'
+    ports:
+      - 6379:6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    command: ["redis-server", "--appendonly", "yes"]
+    hostname: redis
+    networks:
+      - redis-net
+    volumes:
+      - redis-data:/data
+
+  mariadb:
+    image: 'mariadb:latest'
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=sprintman
+      - MYSQL_ROOT_PASSWORD=H4DdGD6dqb6BBDNSsvqsdjqd,m
+    networks:
+      - maria-net
+
+  sprintman_api:
+    build: .
+    env_file:
+      - .env
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - mariadb
+      - redis
+    networks:
+      - redis-net
+      - maria-net
+    command: bash -c "/app/wait-for-it.sh -t 2 mariadb:3306"
+    links:
+      - mariadb:mariadb
+      - redis:redis
+    ports:
+      - '3001:3001'
+      - '5858:5858'
+    volumes:
+      - .:/app
+
+networks:
+  redis-net:
+  maria-net:
+
+volumes:
+  redis-data:
+  mariadb_data:
+    driver: local

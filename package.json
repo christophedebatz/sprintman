@@ -33,7 +33,7 @@
     "@types/node-schedule": "^1.2.3",
     "@types/redis": "^2.8.14",
     "@types/uuid": "^3.4.7",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "dotenv": "^6.2.0",
